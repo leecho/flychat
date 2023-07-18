@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Sse测试文档</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+<div>sse测试</div>
+<div id="result"></div>
+</body>
+</html>
+<script>
+    var source = new EventSource('http://localhost:8080/conversation?chatId=7&&prompt=hello');
+    source.onopen = function (event) {
+        text = document.getElementById('result').innerText;
+        text += '开启: \n ';
+        document.getElementById('result').innerText = text;
+    };
+    source.addEventListener("complete",function(event){
+        source.close();
+    });
+    source.onmessage = function (event) {
+        console.log(event.data + ":" + event.data.length);
+        text = document.getElementById('result').innerText;
+        text += event.data.replace("&nbsp;"," ");
+        document.getElementById('result').innerText = text;
+    };
+    <!-- 添加一个开启回调 -->
+
+</script>

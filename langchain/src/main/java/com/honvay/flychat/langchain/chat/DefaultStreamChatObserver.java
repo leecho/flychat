@@ -1,0 +1,36 @@
+package com.honvay.flychat.langchain.chat;
+
+import java.util.function.Consumer;
+
+public class DefaultStreamChatObserver implements StreamChatObserver {
+
+    private final Consumer<String> resultHandler;
+
+    private final Consumer<Void> completeHandler;
+
+    private final Consumer<Throwable> errorHandler;
+
+    public DefaultStreamChatObserver(Consumer<String> resultHandler,
+                                     Consumer<Void> compeleteHandler,
+                                     Consumer<Throwable> errorHandler) {
+        this.resultHandler = resultHandler;
+        this.completeHandler = compeleteHandler;
+        this.errorHandler = errorHandler;
+    }
+
+
+    @Override
+    public void onResult(String result) {
+        resultHandler.accept(result);
+    }
+
+    @Override
+    public void onError(Throwable throwable) {
+        errorHandler.accept(throwable);
+    }
+
+    @Override
+    public void onComplete() {
+        completeHandler.accept(null);
+    }
+}
