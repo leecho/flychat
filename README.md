@@ -4,6 +4,7 @@
 
 基于Java和ChatGPT的AI平台，已实现基本的问答和基于知识库的问题，暂时只有后端应用，没有前端。
 
+![Screenshot](screenshots/img.png)
 # 框架
 
 - Spring Boot 2.7.13
@@ -51,8 +52,11 @@
 
 # 联系方式
 
-添加微信：leecho571
+wechat：leecho571
 
 # LICENSE
+[MIT](LICENSE)
 
-MIT (LICENSE)
+前端部分基于
+
+[Chagpt-Web](https://github.com/Chanzhaoyu/chatgpt-web)
