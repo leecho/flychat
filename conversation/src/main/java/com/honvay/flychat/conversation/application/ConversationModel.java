@@ -1,6 +1,6 @@
 package com.honvay.flychat.conversation.application;
 
-import com.honvay.flychat.langchain.chat.ModelSetup;
+import com.honvay.flychat.langchain.chat.ChatSetup;
 import lombok.Data;
 
 @Data
@@ -12,10 +12,10 @@ public class ConversationModel {
 
     private Integer maxTokenSize;
 
-    public ModelSetup toModelSetup(){
-        ModelSetup modelSetup = new ModelSetup();
-        modelSetup.setModelName(this.modelName);
-        modelSetup.setTemperature(this.temperature);
-        return modelSetup;
+    public ChatSetup toModelSetup(){
+        ChatSetup chatSetup = new ChatSetup();
+        chatSetup.setModelName(this.modelName);
+        chatSetup.setTemperature(this.temperature);
+        return chatSetup;
     }
 }

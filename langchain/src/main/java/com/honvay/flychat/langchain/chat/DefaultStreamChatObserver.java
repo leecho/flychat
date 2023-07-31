@@ -11,10 +11,10 @@ public class DefaultStreamChatObserver implements StreamChatObserver {
     private final Consumer<Throwable> errorHandler;
 
     public DefaultStreamChatObserver(Consumer<String> resultHandler,
-                                     Consumer<Void> compeleteHandler,
+                                     Consumer<Void> completeHandler,
                                      Consumer<Throwable> errorHandler) {
         this.resultHandler = resultHandler;
-        this.completeHandler = compeleteHandler;
+        this.completeHandler = completeHandler;
         this.errorHandler = errorHandler;
     }
 

@@ -15,3 +15,5 @@ logging:
   level:
     com.honvay: debug
     dev.langchain4j: debug
+openai:
+  apiKey: ${OPENAI_API_KEY}

@@ -1,8 +1,11 @@
 package com.honvay.flychat.conversation.controller;
 
-import com.honvay.cola.framework.web.ResponsePayload;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.honvay.cola.framework.core.protocol.Response;
 import com.honvay.flychat.conversation.application.ConversationApplicationService;
 import com.honvay.flychat.conversation.domain.Conversation;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -23,50 +31,84 @@ public class ConversationController {
 
     private final ConversationApplicationService conversationApplicationService;
 
-    public ConversationController(ConversationApplicationService conversationApplicationService) {
+    private final ObjectMapper objectMapper;
+
+    public ConversationController(ConversationApplicationService conversationApplicationService,
+                                  ObjectMapper objectMapper) {
         this.conversationApplicationService = conversationApplicationService;
+        this.objectMapper = objectMapper;
     }
 
-    @ResponsePayload
-    @RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ConversationVo converse(@RequestBody Conversation conversation) {
-        conversation.init();
+    public ResponseEntity<Response<ConversationVo>> converse(Conversation conversation) {
         this.conversationApplicationService.converse(conversation);
-        return ConversationVo.from(conversation);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Response.success(ConversationVo.from(conversation)));
     }
 
-    @RequestMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<SseEmitter> asyncConverse(@RequestBody Conversation conversation) throws IOException {
+    @RequestMapping
+    public ResponseEntity<SseEmitter> converse(@RequestBody Conversation conversation, HttpServletResponse response) throws IOException {
         conversation.init();
-        SseEmitter emitter = new SseEmitter(3600L * 6);
-        Consumer<String> onResult = text -> {
+        if (conversation.isStream()) {
+            SseEmitter emitter = new SseEmitter(3600L * 6);
+            Consumer<String> onResult = text -> {
+                try {
+                    emitter.send(wrapMessage(conversation,text));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            };
+            Consumer<Void> onComplete = unused -> {
+                try {
+                    emitter.send(SseEmitter.event().name("complete").data("complete"));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                emitter.complete();
+            };
+            Consumer<Throwable> onError = emitter::completeWithError;
             try {
-                emitter.send(text.replaceAll(" ", "&nbsp;"));
-                log.info("对话内容，对话ID：{}，内容:{}，内容长度:{}", conversation.getId(), text, text.length());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                this.conversationApplicationService.converse(conversation, onResult, onComplete, onError);
+            } catch (Exception e) {
+                String message = Optional.ofNullable(e.getMessage())
+                        .orElse(e.getClass().getSimpleName());
+                e.printStackTrace();
+                ResponseEntity<Object> responseEntity = ResponseEntity.internalServerError()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(Response.success(message));
+                this.write(response,responseEntity);
+                return null;
             }
-        };
-        Consumer<Void> onComplete = unused -> {
-            try {
-                emitter.send(SseEmitter.event().name("complete").data("done"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            emitter.complete();
-            log.info("对话已完成，对话ID：{}", conversation.getId());
-        };
-        Consumer<Throwable> onError = emitter::completeWithError;
-        conversationApplicationService.converse(conversation, onResult, onComplete, onError);
-        if (conversation.getChatId() == null) {
-            emitter.send(SseEmitter.event().name("chat").data(conversation.getChatId()));
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Accel-Buffering", "no");
+            headers.setCacheControl(CacheControl.noCache());
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_EVENT_STREAM)
+                    .headers(headers)
+                    .body(emitter);
+        } else {
+            ResponseEntity<Response<ConversationVo>> converse = converse(conversation);
+            this.write(response,converse);
+            return null;
         }
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Accel-Buffering", "no");
-        headers.setCacheControl(CacheControl.noCache());
-        return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_EVENT_STREAM)
-                .headers(headers)
-                .body(emitter);
+    }
+
+    private String wrapMessage(Conversation conversation, String result) throws JsonProcessingException {
+        ConversationVo vo = ConversationVo.from(conversation);
+        vo.setMessage(result);
+        return objectMapper.writeValueAsString(vo);
+    }
+
+    private void write(HttpServletResponse httpServletResponse ,ResponseEntity<?> entity) throws IOException {
+        Set<Map.Entry<String, List<String>>> entries = entity.getHeaders().entrySet();
+        for (Map.Entry<String, List<String>> entry : entries) {
+            for (String s : entry.getValue()) {
+                httpServletResponse.addHeader(entry.getKey(),s);
+            }
+        }
+        httpServletResponse.setStatus(entity.getStatusCode().value());
+        PrintWriter writer = httpServletResponse.getWriter();
+        objectMapper.writeValue(writer,entity.getBody());
+
     }
 }

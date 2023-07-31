@@ -15,6 +15,8 @@ public class ChatPo {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    private String name;
+
     private Long applicationId;
 
     private Long userId;

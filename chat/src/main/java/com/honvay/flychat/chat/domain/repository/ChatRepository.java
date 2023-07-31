@@ -13,4 +13,8 @@ public interface ChatRepository {
     List<ChatMessage> findMessage(Chat chat, int start, int size);
 
     void saveMessages(Chat knowledgeChat);
+
+    List<Chat> find();
+
+    List<ChatMessage> findMessage(Chat chat);
 }

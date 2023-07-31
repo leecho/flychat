@@ -9,7 +9,7 @@ import com.honvay.flychat.knowledge.domain.service.ApplicationDomainService;
 import com.honvay.flychat.chat.domain.service.impl.ChatDomainService;
 import com.honvay.flychat.langchain.chat.ChatModelService;
 import com.honvay.flychat.langchain.chat.DefaultStreamChatObserver;
-import com.honvay.flychat.langchain.chat.ModelSetup;
+import com.honvay.flychat.langchain.chat.ChatSetup;
 import com.honvay.flychat.langchain.chat.StreamChatObserver;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import static java.util.stream.Collectors.joining;
@@ -47,7 +48,9 @@ public class KnowledgeChatServiceImpl implements KnowledgeChatService {
     @Override
     public String chat(KnowledgeChat knowledgeChat, String question) {
 
-        saveIfNew(knowledgeChat);
+        String conversationId = UUID.randomUUID().toString().replaceAll("-","");
+
+        saveIfNecessary(knowledgeChat);
 
         Application application = this.applicationDomainService.get(knowledgeChat.getApplication().getId());
         knowledgeChat.setApplication(application);
@@ -59,12 +62,12 @@ public class KnowledgeChatServiceImpl implements KnowledgeChatService {
                 .map(Relevant::toQuote)
                 .toList();
 
-        knowledgeChat.addMessage(ChatMessage.ofUser(question, promptText, countTokenSize(promptText, application.getModel())));
+        knowledgeChat.addMessage(ChatMessage.ofUser(conversationId,question, promptText, countTokenSize(promptText, application.getModel())));
 
-        ModelSetup modelSetup = assembleModelSetup(application);
-        String answer = this.chatModelService.chat(promptText, modelSetup);
+        ChatSetup chatSetup = assembleModelSetup(application);
+        String answer = this.chatModelService.chat(promptText, chatSetup);
 
-        knowledgeChat.addMessage(ChatMessage.ofAi(answer, quotes, countTokenSize(answer, application.getModel())));
+        knowledgeChat.addMessage(ChatMessage.ofAi(conversationId,answer, quotes, countTokenSize(answer, application.getModel())));
 
         // TODO: 2023/7/17 计费
         this.chatDomainService.saveMessages(knowledgeChat);
@@ -72,15 +75,15 @@ public class KnowledgeChatServiceImpl implements KnowledgeChatService {
         return answer;
     }
 
-    private ModelSetup assembleModelSetup(Application application) {
-        ModelSetup modelSetup = new ModelSetup();
+    private ChatSetup assembleModelSetup(Application application) {
+        ChatSetup chatSetup = new ChatSetup();
         ApplicationModel model = application.getModel();
-        modelSetup.setModelName(model.getModelName());
-        modelSetup.setTemperature(model.getTemperature());
-        return modelSetup;
+        chatSetup.setModelName(model.getModelName());
+        chatSetup.setTemperature(model.getTemperature());
+        return chatSetup;
     }
 
-    private void saveIfNew(KnowledgeChat knowledgeChat) {
+    private void saveIfNecessary(KnowledgeChat knowledgeChat) {
         if (knowledgeChat.getId() == null) {
             knowledgeChat.create();
             this.chatDomainService.create(knowledgeChat);
@@ -135,8 +138,10 @@ public class KnowledgeChatServiceImpl implements KnowledgeChatService {
                      Consumer<Void> onComplete,
                      Consumer<Throwable> onError) {
 
+        String conversationId = UUID.randomUUID().toString().replaceAll("-","");
+
         //保存对话
-        saveIfNew(knowledgeChat);
+        saveIfNecessary(knowledgeChat);
 
         Application application = applicationDomainService.get(knowledgeChat.getApplication().getId());
         knowledgeChat.setApplication(application);
@@ -148,7 +153,7 @@ public class KnowledgeChatServiceImpl implements KnowledgeChatService {
                 .map(Relevant::toQuote)
                 .toList();
 
-        ChatMessage userMessage = ChatMessage.ofUser(question, promptText, countTokenSize(promptText, application.getModel()));
+        ChatMessage userMessage = ChatMessage.ofUser(conversationId,question, promptText, countTokenSize(promptText, application.getModel()));
         knowledgeChat.addMessage(userMessage);
 
         StringBuffer buffer = new StringBuffer();
@@ -160,16 +165,14 @@ public class KnowledgeChatServiceImpl implements KnowledgeChatService {
 
         Consumer<Void> onCompleteWrapper = s -> {
             String result = buffer.toString();
-            ChatMessage aiMessage = ChatMessage.ofAi(result, quotes, countTokenSize(result, application.getModel()));
+            ChatMessage aiMessage = ChatMessage.ofAi(conversationId,result, quotes, countTokenSize(result, application.getModel()));
             knowledgeChat.addMessage(aiMessage);
             this.chatDomainService.saveMessages(knowledgeChat);
             onComplete.accept(s);
         };
-
-
-        ModelSetup modelSetup = assembleModelSetup(application);
+        ChatSetup chatSetup = assembleModelSetup(application);
         StreamChatObserver observer = new DefaultStreamChatObserver(onResultWrapper, onCompleteWrapper, onError);
-        chatModelService.chat(promptText, modelSetup, observer);
+        chatModelService.chat(promptText, chatSetup, observer);
     }
 
 }

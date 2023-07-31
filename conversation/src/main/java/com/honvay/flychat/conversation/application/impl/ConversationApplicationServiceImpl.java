@@ -3,22 +3,21 @@ package com.honvay.flychat.conversation.application.impl;
 import com.honvay.flychat.chat.application.ChatApplicationService;
 import com.honvay.flychat.chat.domain.model.Chat;
 import com.honvay.flychat.chat.domain.model.ChatMessage;
-import com.honvay.flychat.chat.domain.repository.ChatRepository;
 import com.honvay.flychat.conversation.application.ConversationApplicationService;
-import com.honvay.flychat.conversation.application.ConversationModel;
 import com.honvay.flychat.conversation.domain.Conversation;
+import com.honvay.flychat.conversation.infra.MessageProviderDelegator;
 import com.honvay.flychat.langchain.chat.ChatModelService;
 import com.honvay.flychat.langchain.chat.DefaultStreamChatObserver;
-import com.honvay.flychat.langchain.chat.ModelSetup;
+import com.honvay.flychat.langchain.chat.ChatSetup;
 import com.honvay.flychat.langchain.chat.StreamChatObserver;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -30,39 +29,52 @@ public class ConversationApplicationServiceImpl implements ConversationApplicati
 
     private final ChatApplicationService chatApplicationService;
 
-    private final ChatRepository chatRepository;
+    private final MessageProviderDelegator messageProviderDelegator;
 
-    private final ConversationModel conversationModel;
+    private final String apiKey;
 
     public ConversationApplicationServiceImpl(ChatModelService chatModelService,
                                               ChatApplicationService chatApplicationService,
-                                              ChatRepository chatRepository,
-                                              @Autowired(required = false) ConversationModel conversationModel) {
+                                              MessageProviderDelegator messageProviderDelegator,
+                                              @Value("${openai.apiKey:}") String apiKey) {
         this.chatModelService = chatModelService;
         this.chatApplicationService = chatApplicationService;
-        this.chatRepository = chatRepository;
-        if(conversationModel == null){
-            conversationModel = new ConversationModel();
-            conversationModel.setModelName("gpt-3.5-turbo");
-            conversationModel.setTemperature(0.8);
-            conversationModel.setMaxTokenSize(3069);
-        }
-        this.conversationModel = conversationModel;
+        this.messageProviderDelegator = messageProviderDelegator;
+        this.apiKey = apiKey;
     }
 
 
     @Override
-    public void converse(Conversation conversation){
+    public void converse(Conversation conversation) {
 
-        Chat chat = buildChat(conversation);
-        List<ChatMessage> messages = buildMessages(conversation, chat);
+        Chat chat = setupChat(conversation);
+        ChatSetup chatSetup = this.buildChatSetup(conversation);
 
-        ModelSetup modelSetup = conversationModel.toModelSetup();
-        String answer = this.chatModelService.chat(this.convert(messages), modelSetup);
+        String answer = this.chatModelService.chat(this.buildMessages(conversation, chat), chatSetup);
 
-        chat.addMessage(ChatMessage.ofAi(answer,null,countTokenSize(answer)));
-
+        chat.addMessage(ChatMessage.ofAi(conversation.getId(), answer, null, countTokenSize(conversation, answer)));
         conversation.setResult(answer);
+
+        this.chatApplicationService.saveMessages(chat);
+    }
+
+    @NotNull
+    private ChatSetup buildChatSetup(Conversation conversation) {
+        ChatSetup chatSetup = conversation.getModel().toModelSetup();
+        chatSetup.setApiKey(apiKey);
+        return chatSetup;
+    }
+
+    private List<dev.langchain4j.data.message.ChatMessage> buildMessages(Conversation conversation, Chat chat) {
+
+        String prompt = messageProviderDelegator.getPrompt(conversation);
+        ChatMessage userMessage = ChatMessage.ofUser(conversation.getId(), prompt, conversation.getPrompt(), countTokenSize(conversation, prompt));
+        chat.addMessage(userMessage);
+
+        List<ChatMessage> messages = messageProviderDelegator.getRelation(conversation, chat);
+        messages.add(userMessage);
+
+        return this.convert(messages);
     }
 
 
@@ -70,17 +82,17 @@ public class ConversationApplicationServiceImpl implements ConversationApplicati
     public void converse(Conversation conversation,
                          Consumer<String> onResult,
                          Consumer<Void> onComplete,
-                         Consumer<Throwable> onError){
+                         Consumer<Throwable> onError) {
 
         long start = System.currentTimeMillis();
-        log.info("对话开始，对话ID：{}",conversation.getId());
+        log.info("对话开始，对话ID：{}", conversation.getId());
 
-        Chat chat = buildChat(conversation);
+        Chat chat = setupChat(conversation);
 
-        List<ChatMessage> messages = buildMessages(conversation, chat);
+        List<dev.langchain4j.data.message.ChatMessage> messages = this.buildMessages(conversation, chat);
 
-        log.info("上下文准备好，对话ID：{}，时长：{}",conversation.getId(),(System.currentTimeMillis() - start) / 1000);
-        ModelSetup modelSetup = conversationModel.toModelSetup();
+        log.info("上下文准备好，对话ID：{}，时长：{}", conversation.getId(), (System.currentTimeMillis() - start) / 1000);
+        ChatSetup chatSetup = this.buildChatSetup(conversation);
 
         StringBuffer buffer = new StringBuffer();
         Consumer<String> onResultWrapper = s -> {
@@ -90,102 +102,41 @@ public class ConversationApplicationServiceImpl implements ConversationApplicati
 
         Consumer<Void> onCompleteWrapper = s -> {
             String result = buffer.toString();
-            ChatMessage aiMessage = ChatMessage.ofAi(result, null, countTokenSize(result));
+            ChatMessage aiMessage = ChatMessage.ofAi(conversation.getId(), result, conversation.getKnowledge().getQuotes(), countTokenSize(conversation, result));
             chat.addMessage(aiMessage);
             this.chatApplicationService.saveMessages(chat);
             onComplete.accept(s);
-            log.info("对话结束，对话ID：{}，时长：{}",conversation.getId(),(System.currentTimeMillis() - start) / 1000);
+            log.info("对话结束，对话ID：{}，时长：{}", conversation.getId(), (System.currentTimeMillis() - start) / 1000);
         };
 
         StreamChatObserver observer = new DefaultStreamChatObserver(onResultWrapper, onCompleteWrapper, onError);
-        this.chatModelService.chat(this.convert(messages),modelSetup,observer );
+
+        this.chatModelService.chat(messages, chatSetup, observer);
 
     }
 
-    @NotNull
-    private List<ChatMessage> buildMessages(Conversation conversation, Chat chat) {
-        // FIXME: 2023/7/18 计算还有问题
-        ChatMessage userMessage = ChatMessage.ofUser(conversation.getPrompt(), null, countTokenSize(conversation.getPrompt()));
-        chat.addMessage(userMessage);
 
-        List<ChatMessage> messages = new ArrayList<>();
-        messages.add(userMessage);
-
-        //添加历史信息到上下文
-        List<ChatMessage> historyMessages = getHistoryMessages(chat, conversation);
-        if(historyMessages != null){
-            messages.addAll(historyMessages);
-        }
-        return messages;
+    private int countTokenSize(Conversation conversation, String content) {
+        return chatModelService.estimateTokenCount(content, conversation.getModel().getModelName());
     }
 
-
-    public List<dev.langchain4j.data.message.ChatMessage> convert(List<ChatMessage> messages){
-        return messages.stream()
-                .map(message -> {
-                    if (message.getRole().equals("user")) {
-                        return UserMessage.from(message.getContent());
-                    } else {
-                        return AiMessage.from(message.getContent());
-                    }
-                })
-                .toList();
-    }
-
-    private List<ChatMessage> getHistoryMessages(Chat chat,Conversation conversation){
-        Integer maxTokens = conversation.getMaxTokens();
-        if(maxTokens == null || maxTokens > conversationModel.getMaxTokenSize()){
-            maxTokens = conversationModel.getMaxTokenSize();
-        }
-        if(!conversation.isClean() && conversation.getChatId() != null){
-            return getHistoryMessages(chat, maxTokens);
-        }else {
-            return null;
-        }
-    }
-
-    private List<ChatMessage> getHistoryMessages(Chat chat, Integer maxTokens){
-        int start = 0;
-        int size = 5;
-        int tokenSize = 0;
-        List<ChatMessage> messages = new ArrayList<>();
-        while(true){
-            List<ChatMessage> message = this.chatRepository.findMessage(chat, start, size);
-            //没有消息退出循环
-            if(message.size() == 0){
-                break;
-            }
-            for (ChatMessage chatMessage : message) {
-                tokenSize += chatMessage.getTokenSize();
-                //Token达到长度退出循环
-                if(tokenSize > maxTokens){
-                    break;
-                }
-                messages.add(chatMessage);
-            }
-            //消息数量不足退出循环
-            if(message.size() < size){
-                break;
-            }
-            start = (start + 1) * size;
-        }
-
-        return messages;
-    }
-
-
-    private int countTokenSize(String content) {
-        return chatModelService.estimateTokenCount(content, conversationModel.getModelName());
-    }
-
-    private Chat buildChat(Conversation conversation){
+    private Chat setupChat(Conversation conversation) {
         Chat chat = conversation.toChat();
-        if(chat.getId() == null){
-            chat.create();
-            this.chatApplicationService.create(chat);
-            conversation.setChatId(chat.getId());
+        if (chat.isExists()) {
+            return chat;
         }
+        chat.create();
+        String prompt = conversation.getPrompt();
+        chat.setName(StringUtils.substring(prompt, 0, 20));
+        this.chatApplicationService.create(chat);
+        conversation.setChat(chat);
         return chat;
+    }
+
+    public List<dev.langchain4j.data.message.ChatMessage> convert(List<ChatMessage> messages) {
+        return messages.stream()
+                .map(message -> message.getRole().equals("user") ? UserMessage.from(message.getContent()) : AiMessage.from(message.getContent()))
+                .toList();
     }
 
 

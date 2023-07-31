@@ -29,7 +29,7 @@ class OpenAiEmbeddingServiceImplTest {
         Map<String,Object> properties = new HashMap<>();
         List<String> segments = splitter.split(document, properties);
 
-        OpenAiEmbeddingService openAiService = new OpenAiEmbeddingService();
+        OpenAiEmbeddingService openAiService = new OpenAiEmbeddingService(System.getenv("OPENAI_API_KEY"));
         List<float[]> embeddings = openAiService.embed(segments);
         System.out.println(embeddings);
     }
@@ -37,7 +37,7 @@ class OpenAiEmbeddingServiceImplTest {
     @Test
     void embedText(){
         String text = "Who is Charlie? Answer in 10 words.";
-        OpenAiEmbeddingService openAiService = new OpenAiEmbeddingService();
+        OpenAiEmbeddingService openAiService = new OpenAiEmbeddingService(System.getenv("OPENAI_API_KEY"));
         float[] embeddings = openAiService.embed(text);
         System.out.println(Arrays.toString(embeddings));
     }

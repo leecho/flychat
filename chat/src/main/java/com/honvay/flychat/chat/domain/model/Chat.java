@@ -11,6 +11,8 @@ public class Chat {
 
     private Long id;
 
+    private String name;
+
     private User user;
 
     private List<ChatMessage> messages;
@@ -22,6 +24,10 @@ public class Chat {
             this.messages = new ArrayList<>();
         }
         this.messages.add(message);
+    }
+
+    public boolean isExists(){
+        return this.id != null;
     }
 
     public void create(){

@@ -37,26 +37,26 @@ comment on table knowledge_item is '知识条目';
 
 create table application
 (
-    id          bigserial,
-    name        varchar(100),
-    tags        varchar(500),
-    logo        varchar(200),
-    introduction varchar(500),
-    owner     bigint,
-    model_name varchar(100),
-    limit_prompt varchar(1000),
-    temperature float,
-    topk  int,
-    similarity float,
+    id            bigserial,
+    name          varchar(100),
+    tags          varchar(500),
+    logo          varchar(200),
+    introduction  varchar(500),
+    owner         bigint,
+    model_name    varchar(100),
+    limit_prompt  varchar(1000),
+    temperature   float,
+    topk          int,
+    similarity    float,
     relevant_size int
 
 );
 
 create table application_knowledge
 (
-    id          bigserial,
-    application_id        bigint,
-    knowledge_base_id     bigint
+    id                bigserial,
+    application_id    bigint,
+    knowledge_base_id bigint
 );
 
 create table chat
@@ -69,23 +69,24 @@ create table chat
 
 create table chat_message
 (
-    id         bigserial,
-    chat_id    bigint,
-    content    text,
-    prompt     text,
-    role       varchar(10),
-    token_size bigint,
-    cost       decimal(10, 5)
+    id              bigserial,
+    conversation_id varchar(32),
+    chat_id         bigint,
+    content         text,
+    prompt          text,
+    role            varchar(10),
+    token_size      bigint,
+    cost            decimal(10, 5)
 );
 
 create table chat_message_quote
 (
-    id         bigserial,
-    message_id bigint,
-    segment    text,
+    id             bigserial,
+    message_id     bigint,
+    segment        text,
     similarity     double precision,
-    source       text,
-    knowledge_id bigint,
-    knowledge_name      varchar(1000)
+    source         text,
+    knowledge_id   bigint,
+    knowledge_name varchar(1000)
 );
 

@@ -5,6 +5,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiModelName;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -14,6 +15,12 @@ import java.util.stream.Collectors;
 @Service
 public class OpenAiEmbeddingService implements EmbeddingService {
 
+    private final String apiKey;
+
+    public OpenAiEmbeddingService(@Value("${openai.apiKey:}") String apiKey) {
+        this.apiKey = apiKey;
+    }
+
     @Override
    public List<float[]> embed(List<String> texts){
 
@@ -22,7 +29,7 @@ public class OpenAiEmbeddingService implements EmbeddingService {
                .collect(Collectors.toList());
 
        EmbeddingModel embeddingModel = OpenAiEmbeddingModel.builder()
-               .apiKey("your-api-key") // https://platform.openai.com/account/api-keys
+               .apiKey(apiKey) // https://platform.openai.com/account/api-keys
                .modelName(OpenAiModelName.TEXT_EMBEDDING_ADA_002)
                .timeout(Duration.ofSeconds(15))
                .build();
@@ -38,7 +45,7 @@ public class OpenAiEmbeddingService implements EmbeddingService {
     public float[] embed(String text) {
 
         EmbeddingModel embeddingModel = OpenAiEmbeddingModel.builder()
-                .apiKey("your-api-key") // https://platform.openai.com/account/api-keys
+                .apiKey(apiKey) // https://platform.openai.com/account/api-keys
                 .modelName(OpenAiModelName.TEXT_EMBEDDING_ADA_002)
                 .timeout(Duration.ofSeconds(15))
                 .build();

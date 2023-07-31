@@ -15,6 +15,7 @@ import com.honvay.flychat.chat.infra.po.ChatMessagePo;
 import com.honvay.flychat.chat.infra.po.ChatQuotePo;
 import com.honvay.flychat.chat.infra.po.ChatPo;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -36,16 +37,16 @@ public class ChatRepositoryImpl extends ServiceImpl<ChatMapper, ChatPo> implemen
     }
 
     @Override
-    public void create(Chat knowledgeChat) {
-        ChatPo chatPo = converter.convert(knowledgeChat);
+    public void create(Chat chat) {
+        ChatPo chatPo = converter.convert(chat);
         this.getBaseMapper().insert(chatPo);
-        knowledgeChat.setId(chatPo.getId());
+        chat.setId(chatPo.getId());
     }
 
     @Override
-    public List<ChatMessage> findMessage(Chat chat,int start,int size){
+    public List<ChatMessage> findMessage(Chat chat, int start, int size) {
         LambdaQueryWrapper<ChatMessagePo> wrapper = Wrappers.lambdaQuery();
-        wrapper.eq(ChatMessagePo::getChatId,chat.getId())
+        wrapper.eq(ChatMessagePo::getChatId, chat.getId())
                 .orderByDesc(ChatMessagePo::getCreateTime)
                 .last(" limit " + size + " offset " + start);
         List<ChatMessagePo> chatMessagePos = this.chatMessageMapper.selectList(wrapper);
@@ -55,6 +56,7 @@ public class ChatRepositoryImpl extends ServiceImpl<ChatMapper, ChatPo> implemen
     }
 
     @Override
+    @Transactional
     public void saveMessages(Chat knowledgeChat) {
         for (ChatMessage message : knowledgeChat.getMessages()) {
             ChatMessagePo chatMessagePo = converter.convert(message);
@@ -62,7 +64,7 @@ public class ChatRepositoryImpl extends ServiceImpl<ChatMapper, ChatPo> implemen
             this.chatMessageMapper.insert(chatMessagePo);
             message.setId(chatMessagePo.getId());
 
-            if (message.hasRelevant()) {
+            if (message.hasQuotes()) {
                 List<ChatQuote> chatQuotes = message.getQuotes();
                 for (ChatQuote chatQuote : chatQuotes) {
                     ChatQuotePo chatQuotePo = converter.convert(chatQuote);
@@ -72,5 +74,27 @@ public class ChatRepositoryImpl extends ServiceImpl<ChatMapper, ChatPo> implemen
             }
 
         }
+    }
+
+    @Override
+    public List<Chat> find() {
+        LambdaQueryWrapper<ChatPo> wrapper = Wrappers.lambdaQuery();
+        wrapper.last(" limit 20")
+                .orderByDesc(ChatPo::getCreateTime);
+        List<ChatPo> list = this.list(wrapper);
+        return list.stream()
+                .map(converter::convert)
+                .toList();
+    }
+
+    @Override
+    public List<ChatMessage> findMessage(Chat chat) {
+        LambdaQueryWrapper<ChatMessagePo> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(ChatMessagePo::getChatId, chat.getId())
+                .orderByAsc(ChatMessagePo::getCreateTime);
+        List<ChatMessagePo> chatMessagePos = this.chatMessageMapper.selectList(wrapper);
+        return chatMessagePos.stream()
+                .map(converter::convert)
+                .toList();
     }
 }

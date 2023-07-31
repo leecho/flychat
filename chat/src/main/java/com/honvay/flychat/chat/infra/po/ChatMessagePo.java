@@ -15,6 +15,8 @@ public class ChatMessagePo {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    private String conversationId;
+
     private Long chatId;
 
     private String content;

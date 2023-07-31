@@ -10,7 +10,7 @@
 </body>
 </html>
 <script>
-    var source = new EventSource('http://localhost:8080/conversation?chatId=7&&prompt=hello');
+    var source = new EventSource('http://localhost:8080/conversation?prompt=hello');
     source.onopen = function (event) {
         text = document.getElementById('result').innerText;
         text += '开启: \n ';
