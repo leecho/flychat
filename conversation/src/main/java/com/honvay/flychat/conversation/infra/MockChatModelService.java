@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 
 @Service
-@Primary
 public class MockChatModelService implements ChatModelService {
 
     private Faker faker = new Faker();

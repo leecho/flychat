@@ -18,6 +18,7 @@ import java.util.List;
 
 @Slf4j
 @Component
+@Primary
 public class OpenAiChatModelService implements ChatModelService {
 
 
