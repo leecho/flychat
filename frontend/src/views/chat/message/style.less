@@ -1,0 +1,83 @@
+.markdown-body {
+	font-size: 14px;
+	background-color: transparent;
+
+	p {
+		white-space: pre-wrap;
+	}
+
+	ol {
+		list-style-type: decimal;
+	}
+
+	ul {
+		list-style-type: disc;
+	}
+
+	pre code,
+	pre tt {
+		line-height: 1.65;
+	}
+
+	.highlight pre,
+	pre {
+		background-color: #fff;
+	}
+
+	code.hljs {
+		padding: 0;
+	}
+
+	.code-block {
+		&-wrapper {
+			position: relative;
+			padding-top: 24px;
+		}
+
+		&-header {
+			position: absolute;
+			top: 5px;
+			right: 0;
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			width: 100%;
+			padding: 0 1rem;
+			color: #b3b3b3;
+
+			&__copy {
+				margin-left: 0.5rem;
+				cursor: pointer;
+				user-select: none;
+
+				&:hover {
+					color: #65a665;
+				}
+			}
+		}
+	}
+
+}
+
+body[arco-theme='dark'] {
+	.message-reply {
+		.whitespace-pre-wrap {
+			color: var(--n-text-color);
+			white-space: pre-wrap;
+		}
+	}
+
+	.highlight pre, pre {
+		background-color: #282c34;
+	}
+}
+
+@media screen and (max-width: 533px) {
+	.markdown-body .code-block-wrapper {
+		padding: unset;
+
+		code {
+			padding: 24px 16px 16px;
+		}
+	}
+}
