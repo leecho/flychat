@@ -6,18 +6,17 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.1.1</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
     <groupId>com.honvay</groupId>
-    <artifactId>flychat</artifactId>
+    <artifactId>flyai</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>flychat</name>
+    <name>flyai</name>
     <modules>
         <module>framework</module>
-        <module>knowledge</module>
+        <module>document</module>
         <module>bootstrap</module>
-        <module>chat</module>
         <module>langchain</module>
         <module>conversation</module>
     </modules>

@@ -18,11 +18,11 @@
       >
         <CardWrap
           :loading="loading"
-          :title="item.title"
-          :description="item.description"
-          :default-value="item.enable"
-          :action-type="item.actionType"
+          :title="item.name"
+          :description="item.introduction"
+          :default-value="true"
           :tag-text="$t('cardList.preset.tag')"
+          @click="open(item)"
         >
           <template #skeleton>
             <a-skeleton :animation="true">
@@ -37,15 +37,20 @@
 </template>
 
 <script lang="ts" setup>
-  import { queryRulesPresetList, ServiceRecord } from '@/api/list';
+  import { queryApplicationList, ApplicationRecord } from '@/api/application';
   import useRequest from '@/hooks/request';
+  import router from '@/router';
   import CardWrap from './card-wrap.vue';
 
-  const defaultValue: ServiceRecord[] = new Array(6).fill({});
-  const { loading, response: renderData } = useRequest<ServiceRecord[]>(
-    queryRulesPresetList,
+  const defaultValue: ApplicationRecord[] = new Array(6).fill({});
+  const { loading, response: renderData } = useRequest<ApplicationRecord[]>(
+    queryApplicationList,
     defaultValue
   );
+
+  const open = (application: ApplicationRecord) => {
+    router.replace(`/conversation/${application.id}`);
+  };
 </script>
 
 <style scoped lang="less"></style>

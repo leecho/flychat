@@ -9,13 +9,14 @@
     >
       <chat-list
         ref="chatListRef"
+        :application-id="+applicationId"
         :current="+id"
         @change="loadChat"
         @create="newChat"
       />
     </a-layout-sider>
     <a-layout-content class="chat-content">
-      <chat-container ref="chatContainerRef" @new-chat="addChat" />
+      <chat-container ref="chatContainerRef" :application-id="+applicationId" @new-chat="addChat" />
     </a-layout-content>
   </a-layout>
 </template>
@@ -30,8 +31,7 @@
   const chatListRef = ref();
   const chatContainerRef = ref();
   const route = useRoute();
-  const id = route.path.replace('/chat/conversation/', '');
-
+  const { applicationId, id } = route.params;
   const loadChat = (chat: ChatRecord) => {
     chatContainerRef.value.loadMessage(chat);
   };
@@ -43,7 +43,8 @@
   };
 
   // eslint-disable-next-line no-console
-  console.log(route.query.id);
+  console.log(route.params.id);
+  console.log(route.params.applicationId);
 
   /* if (id) {
     chatContainerRef.value.loadMessage(+id);

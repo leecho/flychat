@@ -9,7 +9,7 @@ import createRouteGuard from './guard';
 NProgress.configure({ showSpinner: false }); // NProgress Configuration
 
 const chatRouters = {
-  path: '/chat',
+  path: '/conversation',
   name: 'chat',
   component: DEFAULT_LAYOUT,
   meta: {
@@ -20,7 +20,7 @@ const chatRouters = {
   },
   children: [
     {
-      path: 'conversation',
+      path: ':applicationId',
       name: 'conversation',
       component: () => import('@/views/chat/index.vue'),
       meta: {

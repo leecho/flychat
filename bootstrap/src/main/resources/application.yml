@@ -1,8 +1,10 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/flychat
+    url: jdbc:postgresql://localhost:5432/flyai
     username: postgres
     password: postgres
+  application:
+    name: flyai
 mybatis-plus:
   configuration:
     cache-enabled: true
@@ -11,6 +13,14 @@ mybatis-plus:
     use-actual-param-name: true
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   type-handlers-package: com.honvay.**.handler
+management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  endpoints:
+    web:
+      exposure:
+        include: '*'
 logging:
   level:
     com.honvay: debug

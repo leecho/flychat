@@ -1,17 +1,19 @@
 package impl;
 
-import com.honvay.flychat.application.FlychatApplication;
-import com.honvay.flychat.knowledge.domain.model.*;
-import com.honvay.flychat.knowledge.domain.repository.ApplicationRepository;
-import com.honvay.flychat.knowledge.domain.service.impl.ApplicationDomainServiceImpl;
-import org.checkerframework.checker.units.qual.A;
+import com.honvay.flyai.app.domain.model.Application;
+import com.honvay.flyai.app.domain.model.Model;
+import com.honvay.flyai.app.domain.model.Reference;
+import com.honvay.flyai.document.domain.model.*;
+import com.honvay.flyai.application.FlyaiApplication;
+import com.honvay.flyai.app.domain.repository.ApplicationRepository;
+import com.honvay.flyai.app.domain.service.impl.ApplicationDomainServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(classes = FlychatApplication.class)
+@SpringBootTest(classes = FlyaiApplication.class)
 class ApplicationDomainServiceImplTest {
 
     @Autowired
@@ -29,14 +31,14 @@ class ApplicationDomainServiceImplTest {
         Owner owner = new Owner();
         owner.setId(1L);
         application.setOwner(owner);
-        ApplicationKnowledge knowledge = new ApplicationKnowledge();
+        Reference knowledge = new Reference();
         knowledge.setSimilarity(0.8);
         knowledge.setRelevantSize(1);
-        application.setKnowledge(knowledge);
-        ApplicationModel model = new ApplicationModel();
+        application.setReference(knowledge);
+        Model model = new Model();
         model.setModelName("gpt-turbo-3");
         model.setTemperature(0.8);
-        model.setTopk(5);
+        model.setTopP(5.0);
         application.setModel(model);
         applicationDomainService.create(application);
     }
@@ -49,20 +51,20 @@ class ApplicationDomainServiceImplTest {
         application.setName("应用2");
         application.setLogo("logo");
         application.setIntroduction("应用介绍");
-        ApplicationKnowledge knowledge = new ApplicationKnowledge();
+        Reference knowledge = new Reference();
         knowledge.setSimilarity(0.9);
         knowledge.setRelevantSize(1);
-        application.setKnowledge(knowledge);
-        ApplicationModel model = new ApplicationModel();
+        application.setReference(knowledge);
+        Model model = new Model();
         model.setModelName("gpt-turbo-5");
         model.setTemperature(0.8);
-        model.setTopk(5);
+        model.setTopP(5.0);
         application.setModel(model);
         applicationDomainService.update(application);
 
         Application application1 = applicationRepository.get(4L);
         assertEquals(application1.getName(),application.getName());
-        assertEquals(application1.getKnowledge().getSimilarity(),application.getKnowledge().getSimilarity());
+        assertEquals(application1.getReference().getSimilarity(),application.getReference().getSimilarity());
         assertEquals(application1.getModel().getModelName(),application.getModel().getModelName());
 
     }
@@ -72,11 +74,11 @@ class ApplicationDomainServiceImplTest {
 
         Application application = new Application();
         application.setId(4L);
-        ApplicationKnowledge knowledge = new ApplicationKnowledge();
-        application.setKnowledge(knowledge);
-        KnowledgeBase knowledgeBase = new KnowledgeBase();
-        knowledgeBase.setId(3L);
-        application.addKnowledgeBase(knowledgeBase);
+        Reference knowledge = new Reference();
+        application.setReference(knowledge);
+        Document document = new Document();
+        document.setId(3L);
+        application.addDocument(document);
         applicationDomainService.addKnowledgeBase(application);
     }
 }

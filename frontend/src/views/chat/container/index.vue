@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, onMounted, Ref, ref } from 'vue';
+  import { computed, defineProps, onMounted, Ref, ref } from 'vue';
   import html2canvas from 'html2canvas';
   import useBasicLayout from '@/hooks/layout';
   import { t } from '@/locale';
@@ -30,6 +30,12 @@
   const promptTemplate: any[] = [];
 
   const emits = defineEmits(['newChat']);
+
+  interface ApplicationValue {
+    applicationId: number;
+  }
+
+  const props = defineProps<ApplicationValue>();
 
   const fetchMessages = async () => {
     if (chat.value == null) {
@@ -87,7 +93,13 @@
         loading.value = false;
       },
     };
-    await conversation(chat.value, promptText, options, controller);
+    await conversation(
+      chat.value,
+      props.applicationId,
+      promptText,
+      options,
+      controller
+    );
   };
 
   async function onConversation() {

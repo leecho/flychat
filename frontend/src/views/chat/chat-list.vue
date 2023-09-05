@@ -47,16 +47,15 @@
   import { ref, defineEmits, defineProps, onMounted } from 'vue';
   import { Chat } from '@/store/modules/chat/types';
   import { ChatRecord, loadChats } from '@/api/chat';
-  import { useRouter } from 'vue-router';
 
   const emits = defineEmits(['change', 'create']);
 
   const chatStore = useChatStore();
   const chats = ref<ChatRecord[]>([]);
   const activeChat = ref<ChatRecord>();
-  const router = useRouter();
   interface ChatValue {
     current: number;
+    applicationId: number;
   }
 
   const props = defineProps<ChatValue>();
@@ -88,7 +87,7 @@
 
   const fetchSourceData = async () => {
     try {
-      const { data } = await loadChats();
+      const { data } = await loadChats(props.applicationId);
       chats.value = data;
       chats.value.forEach((chat) => {
         if (chat.id === props.current) {

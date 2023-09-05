@@ -17,12 +17,14 @@ export interface ChatMessageRecord {
   role: string;
 }
 
-export function loadChats() {
-  return axios.get<ChatRecord[]>('/chat');
+export function loadChats(applicationId: number) {
+  return axios.get<ChatRecord[]>(
+    `/conversation?applicationId=${applicationId}`
+  );
 }
 
 export function loadMessage(id: number) {
-  return axios.get<ChatMessageRecord[]>(`/chat/${id}/messages`);
+  return axios.get<ChatMessageRecord[]>(`/conversation/${id}/messages`);
 }
 
 const prettyObject = (msg: any) => {
@@ -47,6 +49,7 @@ export interface ConversationOption {
 
 export async function conversation(
   chat: ChatRecord | null,
+  applicationId: number,
   promptText: string,
   options: ConversationOption,
   controller: AbortController
@@ -67,14 +70,10 @@ export async function conversation(
     method: 'POST',
     body: JSON.stringify({
       prompt: promptText,
-      relation: {
-        clean: false,
-      },
       userId: 17502168,
+      conversationId: chat?.id,
+      applicationId,
       stream: true,
-      chat: {
-        id: chat?.id,
-      },
     }),
     signal: controller.signal,
     headers: {

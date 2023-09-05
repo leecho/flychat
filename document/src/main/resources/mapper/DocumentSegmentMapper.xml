@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.honvay.flyai.reference.infra.mapper.DocumentSegmentMapper">
+
+    <select id="findRelevant" resultType="com.honvay.flyai.document.domain.model.RelevantSegment">
+        select document_id,source,segment,similarity from(
+            select document_id,source,segment,1 - (embedding &lt;=&gt; #{embedding}) as similarity
+            from knowledge_detail
+            where document_id IN
+            <foreach collection="documentIds" separator="," open="(" close=")" item="documentId">
+                #{documentId}
+            </foreach>
+        ) detail
+        where similarity &gt; #{similarity}
+        order by similarity desc
+        limit #{size};
+    </select>
+</mapper>

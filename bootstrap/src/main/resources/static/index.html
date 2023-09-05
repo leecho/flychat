@@ -10,7 +10,7 @@
 </body>
 </html>
 <script>
-    var source = new EventSource('http://localhost:8080/knowledge/?applicationId=4&question=你好');
+    var source = new EventSource('http://localhost:8080/reference/?applicationId=4&question=你好');
     source.onopen = function (event) {
         text = document.getElementById('result').innerText;
         text += '开启: \n ';

@@ -1,9 +1,9 @@
 package impl;
 
-import com.honvay.flychat.application.FlychatApplication;
+import com.honvay.flyai.application.FlyaiApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest(classes = FlychatApplication.class)
+@SpringBootTest(classes = FlyaiApplication.class)
 class KnowledgeChatServiceImplTest {
 
    /* @Autowired
